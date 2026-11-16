@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebRelay</title><link rel="stylesheet" href="/style.css"><script type="module" src="/dashboard.js"></script></head>
+<body><header><strong>WebRelay</strong><span>Browser automation</span><button id="logout" hidden>Sign out</button></header>
+<main><h1>Automation jobs</h1><p id="status" role="status"></p>
+<form id="connect" class="card"><label>Operator token<input name="token" type="password" required autocomplete="off"></label><button>Connect</button></form>
+<div id="workspace" hidden>
+<form id="create" class="card"><h2>Schedule a job</h2>
+<div id="templates"></div>
+<label>Task instruction<input name="instruction" value="Collect the inventory stock report." maxlength="400" required></label>
+<div class="two"><label>Filter extracted rows (optional)<input name="search" maxlength="80"></label>
+<label>Run at local time (optional)<input name="scheduled_at" type="datetime-local"></label></div>
+<label id="demo" hidden><input name="simulate_first_failure" type="checkbox"> Simulate an unavailable sample page on the first attempt</label>
+<button>Schedule job</button></form>
+<div class="grid"><section class="card"><h2>Jobs</h2><div id="jobs"></div></section>
+<section class="card"><h2>Execution details</h2><div id="job"><p>Select a job.</p></div></section></div>
+</div></main></body></html>
