@@ -24,3 +24,26 @@ jobs:
       - run: python -m pytest -q
       - run: python -m pip_audit
       - run: docker build -t webrelay:ci .
+      - name: Capture a sample report inside the container
+        run: |
+          set -euo pipefail
+          docker run --rm -d --name webrelay-ci -p 127.0.0.1:8018:8000 -e DEMO_MODE=true webrelay:ci
+          trap 'docker stop webrelay-ci' EXIT
+          base=http://127.0.0.1:8018/api
+          auth='Authorization: Bearer webrelay-local-demo'
+          curl -fsS --retry 15 --retry-connrefused --retry-delay 1 "$base/health"
+          job=$(curl -fsS -H "$auth" -H 'Content-Type: application/json' -d '{"instruction":"Collect inventory"}' "$base/jobs" |
+            python -c 'import json,sys; print(json.load(sys.stdin)["id"])')
+          for attempt in $(seq 1 45); do
+            status=$(curl -fsS -H "$auth" "$base/jobs/$job" | python -c 'import json,sys; print(json.load(sys.stdin)["status"])')
+            if [ "$status" = completed ]; then
+              curl -fsS -H "$auth" "$base/jobs/$job/report" | grep 'BX-104'
+              exit 0
+            fi
+            if [ "$status" = failed ]; then
+              curl -fsS -H "$auth" "$base/jobs/$job"
+              exit 1
+            fi
+            sleep 1
+          done
+          exit 1

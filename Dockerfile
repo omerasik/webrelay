@@ -1,9 +1,11 @@
-FROM python:3.12-slim
+FROM python:3.12-slim-bookworm
 WORKDIR /app
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt \
+RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
+    && pip install --no-cache-dir -r requirements.txt \
     && python -m playwright install --with-deps chromium \
+    && rm -rf /var/lib/apt/lists/* \
     && chmod -R a+rX /ms-playwright \
     && useradd --create-home webrelay && mkdir data && chown webrelay:webrelay data
 COPY webrelay/ webrelay/
