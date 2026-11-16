@@ -1,0 +1,6 @@
+.git
+.venv
+.browsers
+.env*
+data
+__pycache__
