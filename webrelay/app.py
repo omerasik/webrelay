@@ -50,12 +50,16 @@ def create_app(path: Path, token: str, origin: str, *, demo: bool = False, auto_
                 demo and job["payload"]["simulate_first_failure"] and job["attempts"] == 1
             ))
         except BrowserFault as error:
-            store.finish(job, lease, None, error=error.code, retryable=error.retryable)
-            log.info("browser_failed job_id=%s attempt=%d code=%s", job["id"], job["attempts"], error.code)
+            saved = store.finish(job, lease, None, error=error.code, retryable=error.retryable)
+            if saved:
+                log.info("browser_failed job_id=%s attempt=%d code=%s", job["id"], job["attempts"], error.code)
         else:
-            store.finish(job, lease, result)
-            log.info("browser_completed job_id=%s attempt=%d duration_ms=%d rows=%d",
-                     job["id"], job["attempts"], result.duration_ms, len(result.rows))
+            saved = store.finish(job, lease, result)
+            if saved:
+                log.info("browser_completed job_id=%s attempt=%d duration_ms=%d rows=%d",
+                         job["id"], job["attempts"], result.duration_ms, len(result.rows))
+        if not saved:
+            log.info("browser_result_discarded job_id=%s attempt=%d", job["id"], job["attempts"])
         return store.get(job["id"])
 
     async def work():

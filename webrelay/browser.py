@@ -38,6 +38,7 @@ class BrowserRunner:
     async def retrieve(self, template: Template, search: str, *, unavailable: bool = False):
         target = self.origin + template.path
         started = time.monotonic()
+        blocked_redirect = False
         try:
             async with asyncio.timeout(35), async_playwright() as playwright:
                 browser = await playwright.chromium.launch(headless=True, timeout=20_000)
@@ -49,12 +50,14 @@ class BrowserRunner:
                     )
                     try:
                         async def route_policy(route):
+                            nonlocal blocked_redirect
                             request = route.request
                             if request.method != "GET" or request.url != target or request.resource_type != "document":
                                 await route.abort("blockedbyclient")
                                 return
                             upstream = await route.fetch(max_redirects=0, timeout=7000)
                             if 300 <= upstream.status < 400:
+                                blocked_redirect = True
                                 await route.abort("blockedbyclient")
                                 return
                             await route.fulfill(response=upstream)
@@ -86,5 +89,7 @@ class BrowserRunner:
                 finally:
                     await browser.close()
         except (TimeoutError, Error) as error:
+            if blocked_redirect:
+                raise BrowserFault("redirect_not_allowed") from error
             raise BrowserFault("browser_unavailable", retryable=True) from error
         return BrowserResult(records, screenshot, round((time.monotonic() - started) * 1000), template.path)

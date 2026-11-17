@@ -19,6 +19,7 @@ function button(text, callback, className) {
   const result = node("button", text, className);
   result.type = "button";
   result.onclick = callback;
+  result.disabled = pending;
   return result;
 }
 
@@ -47,11 +48,15 @@ async function refresh() {
 async function act(callback) {
   if (pending) return;
   pending = true;
+  for (const control of document.querySelectorAll("button")) control.disabled = true;
   loadSequence += 1;
-  el("status").textContent = "";
-  try { await callback(); await refresh(); }
+  el("status").textContent = "Working…";
+  try { await callback(); await refresh(); el("status").textContent = ""; }
   catch (error) { el("status").textContent = error.message; }
-  finally { pending = false; }
+  finally {
+    pending = false;
+    for (const control of document.querySelectorAll("button")) control.disabled = false;
+  }
 }
 
 function releasePicture() {
@@ -89,7 +94,9 @@ function render(jobs) {
     node("p", "Scheduled " + time.format(new Date(job.run_at * 1000))));
   if (job.error) panel.append(node("p", "Last error · " + job.error.replaceAll("_", " ")));
   if (["queued", "retrying", "running"].includes(job.status)) {
-    panel.append(button("Cancel job", () => void act(() => api("jobs/" + job.id + "/cancel", { method: "POST" })), "action"));
+    panel.append(button("Cancel job", () => {
+      if (window.confirm("Cancel this pending browser job?")) void act(() => api("jobs/" + job.id + "/cancel", { method: "POST" }));
+    }, "action"));
   }
   const timeline = node("ol", "");
   for (const event of job.history) {
