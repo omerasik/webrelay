@@ -2,6 +2,8 @@
 
 WebRelay schedules browser reports against an authorized synthetic supply portal. The planner maps an inventory or purchase order instruction to a bounded template. Playwright collects rows in an isolated Chromium session, validates the fields and stores a screenshot and report.
 
+![Actual Chromium report, captured webpage and recovered outage in the dashboard](dashboard.png)
+
 ## Run locally
 
 Use Python 3.12.
@@ -23,7 +25,9 @@ For Docker, build with `docker build -t webrelay .` and run with `docker run --r
 
 FastAPI accepts task instructions and schedules. SQLite stores the queue, idempotency keys, expiring worker leases, trace and results. Delayed retries use exponential backoff capped at three attempts. An expired lease can be reclaimed. Cancelling a queued or running job prevents a later worker result from being committed.
 
-The browser only opens the exact loopback origin and path selected by the inventory or order template. The browser route rejects unrelated requests and redirect responses. The session starts without stored cookies, blocks service workers and WebSockets, and uses a job deadline. Requests are read-only. Portal submissions and external sites are outside this application. The planner is deterministic, and the sample portal needs no login.
+The browser only opens the exact loopback origin and path selected by the inventory or order template. The browser route rejects unrelated requests and redirect responses before following them. A redirect is a permanent `redirect_not_allowed` failure, rather than a transient outage retry. Each job gets a fresh browser/context, blocks service workers and WebSockets, disables JavaScript and uses a job deadline. Requests are read-only. Portal submissions and external sites are outside this application. The planner is deterministic, and the sample portal needs no login.
+
+Cancellation revokes the job's lease and confirms the operator's intent in the dashboard. A browser operation already in progress may finish its isolated read, but cannot store a late result or screenshot. Logs distinguish discarded results from completed jobs. Dashboard controls show pending operations and prevent silently ignored clicks while requests are active.
 
 The demo operator token is embedded in the loopback demo. Outside demo mode, set a random `OPERATOR_TOKEN` with at least 32 characters. `DATABASE_PATH` points to persistent storage. `SAMPLE_ORIGIN` defaults to `http://127.0.0.1:8000` and can point to another loopback port hosting the same sample. API schemas, including job submission, worker ticks, cancellation and artifacts, are available at `/docs`.
 
@@ -35,4 +39,8 @@ python -m pytest -q
 python -m pip_audit
 ```
 
-Tests use real Chromium against a loopback FastAPI server to demonstrate 503 recovery, schema validation, screenshot persistence and CSV/JSON output. Other cases verify authorization, scheduling, input restrictions, duplicate handling and stale lease fencing. [Playwright network controls](https://playwright.dev/python/docs/network).
+Tests use real Chromium against loopback servers to demonstrate 503 recovery, schema validation, screenshot persistence and CSV/JSON output. Security regressions verify redirect blocking before a second path is requested, blocked subresources, fresh cookies across jobs, in-flight cancellation fencing, persisted future schedules and concurrent worker claims. The dashboard test downloads a real report. CI builds the image and runs its actual Chromium against the sample portal. [Playwright network controls](https://playwright.dev/python/docs/network).
+
+## License
+
+Original project code is licensed under MIT. See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md).
