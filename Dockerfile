@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends libatomic1 \
     && chmod -R a+rX /ms-playwright \
     && useradd --create-home webrelay && mkdir data && chown webrelay:webrelay data
 COPY webrelay/ webrelay/
+COPY LICENSE THIRD_PARTY_NOTICES.md ./
 USER webrelay
 EXPOSE 8000
 HEALTHCHECK CMD ["python", "-c", "from urllib.request import urlopen; urlopen('http://127.0.0.1:8000/api/health', timeout=3)"]

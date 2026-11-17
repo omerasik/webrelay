@@ -40,3 +40,7 @@ python -m pip_audit
 ```
 
 Tests use real Chromium against loopback servers to demonstrate 503 recovery, schema validation, screenshot persistence and CSV/JSON output. Security regressions verify redirect blocking before a second path is requested, blocked subresources, fresh cookies across jobs, in-flight cancellation fencing, persisted future schedules and concurrent worker claims. The dashboard test downloads a real report. CI builds the image and runs its actual Chromium against the sample portal. [Playwright network controls](https://playwright.dev/python/docs/network).
+
+## License
+
+Original project code is licensed under MIT. See [LICENSE](LICENSE) and [third-party notices](THIRD_PARTY_NOTICES.md).
